@@ -34,29 +34,6 @@ This package is based on the Alleleome package created by Archana S. Harke ([anp
 - Requires Python version 3.10 or higher.
 - For optimal performance, especially when processing a large dataset, such as 1400 core genes and their respective alleles across 3400 strains, a high RAM capacity is strongly recommended.
 
-### Creating a Virtual Environment
-
-Before installing Alleleome, it's recommended to create a virtual environment. This helps to manage dependencies and isolate the project.
-
-1. Create the Virtual Environment:
-   - Run the following command to create a virtual environment named `env` (you can choose any name):
-     ```bash
-     python3 -m venv env
-     ```
-
-2. Activate the Virtual Environment:
-
-   - On Linux or macOS, activate the virtual environment by running:
-     ```bash
-     source env/bin/activate
-     ```
-
-3. Deactivate the Virtual Environment:
-   - You can deactivate the virtual environment after the job completion by running:
-     ```bash
-     deactivate
-     ```
-
 ### Installation
 #### Using GitHub Repository
 
