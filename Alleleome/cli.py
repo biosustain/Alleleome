@@ -97,12 +97,12 @@ def main_analyze(args):
     gene_list = load_and_qcqa.load_gene_list(args.gene_list)
     mutations_parallel.generate_amino_acid_vars(gene_list, args.out_dir, args.aa_vars, p=args.p)
     mutations_parallel.codon_mut(gene_list, args.out_dir, args.codon_muts, p=args.p)
+    dominant_aa.find_dominant_aa(gene_list, args.out_dir, args.dominant_aa, p=args.p)
 
 
 def main_preplot(args):
     gene_list = load_and_qcqa.load_gene_list(args.gene_list)
     dn_ds.calculate_dn_ds(args.codon_muts, args.dn_ds, args.dn_ds_json)
-    dominant_aa.find_dominant_aa(gene_list, args.out_dir, args.dominant_aa, p=args.p)
     var_aa.find_variable_aa(args.aa_vars, args.variable_aa)
     var_aa.find_dominant_var_all(
         args.variable_aa,
@@ -232,7 +232,7 @@ def main():
             required=True,
             help="Path to gene_list.txt file.",
         )
-    for x in ["process", "analyze", "preplot"]:
+    for x in ["process", "analyze"]:
         parsers[x].add_argument(
             "-p",
             type=int,
@@ -240,12 +240,13 @@ def main():
             default=1,
             help="Number of parallel processes to spawn.",
         )
-    parsers["preplot"].add_argument(
-        "--dominant_aa",
-        type=str,
-        required=True,
-        help="Path to final_core_consensus_dominant_aa_count_df csv file.",
-    )
+    for x in ["analyze", "preplot"]:
+        parsers[x].add_argument(
+            "--dominant_aa",
+            type=str,
+            required=True,
+            help="Path to final_core_consensus_dominant_aa_count_df csv file.",
+        )
     parsers["preplot"].add_argument(
         "--variable_aa",
         type=str,
