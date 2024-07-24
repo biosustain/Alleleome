@@ -79,19 +79,11 @@ def main_fasta(args):
     )
     load_and_qcqa.write_gene_list(gene_list, args.gene_list)
 
-
 def main_process(args):
     gene_list = load_and_qcqa.load_gene_list(args.gene_list)
     consensus_sequence.build_consensus(gene_list, args.out_dir, p=args.p)
     sequence_alignment.align_sequences(gene_list, args.out_dir, "amino_acid", p=args.p)
     sequence_alignment.align_sequences(gene_list, args.out_dir, "nucleotide", p=args.p)
-
-
-def main_process_gene(args):
-    consensus_sequence.build_single_gene_consensus(args.gene_id, args.out_dir)
-    sequence_alignment.align_single_gene(args.gene_id, args.out_dir, "amino_acid")
-    sequence_alignment.align_single_gene(args.gene_id, args.out_dir, "nucleotide")
-
 
 def main_analyze(args):
     gene_list = load_and_qcqa.load_gene_list(args.gene_list)
@@ -126,18 +118,16 @@ def main():
         description=(
             "Alleleome - Explore and analyze natural sequence "
             "variations within the Open Reading Frames (ORFs) of "
-            "alleles of core genes in a species pan-genome."
+            "alleles of genes in a species pan-genome."
         )
     )
     parser.set_defaults(func=ask_select_mode)
     subparsers = parser.add_subparsers()
 
-    # parser.add_argument("mode", type=str, choices=["prepare", "fasta", "process", "process_gene", "analyze"])
     modes = {
         "prepare": main_prepare,
         "fasta": main_fasta,
         "process": main_process,
-        "process_gene": main_process_gene,
         "analyze": main_analyze,
         "preplot": main_preplot,
     }
@@ -193,19 +183,13 @@ def main():
         parsers[x].add_argument(
             "--sel_genes", type=str, required=True, help="Path to sel_genes csv file."
         )
-    for x in ["fasta", "process", "process_gene", "analyze", "preplot"]:
+    for x in ["fasta", "process", "analyze", "preplot"]:
         parsers[x].add_argument(
             "--out_dir",
             type=str,
             required=True,
             help="Path to store alignment outputs.",
         )
-    parsers["process_gene"].add_argument(
-        "--gene_id",
-        type=str,
-        required=True,
-        help="Gene ID when processing a single gene.",
-    )
     for x in ["analyze", "preplot"]:
         parsers[x].add_argument(
             "--aa_vars",

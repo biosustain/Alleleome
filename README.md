@@ -1,9 +1,9 @@
 
 
-# Alleleome: Core Gene Alleleome Generation for Pan-Genomes of Species
+# Alleleome: Core- and Panalleleome Generation for Pan-Genomes of Species
 
 ## Introduction
-"Alleleome" is a specialized package designed to explore and analyze natural sequence variations within the Open Reading Frames (ORFs) of alleles of core genes in a species' pan-genome, both at the amino acid and nucleotide levels. This first version focuses on analyzing only the core genes of a pan-genome. It identifies variants such as substitutions, insertions, and deletions through a series of steps:
+"Alleleome" is a specialized package designed to explore and analyze natural sequence variations within the Open Reading Frames (ORFs) of alleles of core genes in a species' pan-genome, both at the amino acid and nucleotide levels. It identifies variants such as substitutions, insertions, and deletions through a series of steps:
 
 1. Initial QCQA of sequences.
 2. Building consensus for each gene's allele set.
@@ -14,7 +14,7 @@
 The Alleleome workflow is specifically tailored to study the natural sequence variations in core genes of the pan-genome of a species, with an emphasis on variations at the amino acid and nucleotide level.
 
 ### Publication
-For more detailed information, refer to our publication:
+This package is based on the Alleleome package created by Archana S. Harke ([anpache/Core-Alleleome](https://github.com/anpanche/Core-Alleleome)) For more detailed information, refer to their publication:
 [Early Release on BioRxiv](https://www.biorxiv.org/content/biorxiv/early/2023/09/22/2023.09.22.558971.full.pdf)
 
 ## Table of Contents
@@ -33,36 +33,6 @@ For more detailed information, refer to our publication:
 - Alleleome is tested and confirmed for Linux systems with the Conda package manager.
 - Requires Python version 3.10 or higher.
 - For optimal performance, especially when processing a large dataset, such as 1400 core genes and their respective alleles across 3400 strains, a high RAM capacity is strongly recommended.
-- Git Large File Storage (Git LFS) must be installed for handling large files in the repository. See the Git LFS Installation section below for instructions.
-
-### Git LFS Installation
-This repository uses Git Large File Storage (Git LFS) to manage large files. To properly clone and use this repository, please ensure you have Git LFS installed.
-
-1. Install Git LFS:
-   - You can install Git LFS from [git-lfs.github.com](https://git-lfs.github.com/) or use a package manager. For example, on Ubuntu, you can use:
-     ```bash
-     sudo apt-get install git-lfs
-     ```
-
-2. Initialize Git LFS:
-   - After installing, set up Git LFS in your repository:
-     ```bash
-     git lfs install
-     ```
-
-3. Clone the Repository with LFS:
-   - To clone the repository and download the LFS files, use:
-     ```bash
-     git clone https://github.com/anpanche/Core-Alleleome.git
-     git lfs pull
-     ```
-
-4. Update Existing Clone:
-   - If you have already cloned the repository without LFS, run:
-     ```bash
-     git lfs pull
-     ```
-   - This command will download the actual content of the large files.
 
 ### Creating a Virtual Environment
 
@@ -105,31 +75,33 @@ Before installing Alleleome, it's recommended to create a virtual environment. T
 
 ## Usage
 
-### Running Your Species Core Genes
-To analyze your species data:
-   ```
-   Alleleome Core --path1 path/to/pangenome_alignments --path2 path/to/alleleome
-   ```
+### Modes
+The package consists of 5 subprograms that should be run sequentially:
+1. **prepare**: Collect information on the genomes and genes/loci, and perform QC/QA.
+2. **fasta**: Use the collected information to create amino acid and nucleotide fasta files for alignment. At this steps it should be specified whether teh Core-alleleome should be anlyzed (default) or the Panalleleome (`--pan`).
+3. **process**: Run alignments using blast and mafft.
+4. **analyze**: Analyze and process the sequence alignments.
+5. **preplot**: Generate files required for plotting the results on PanKB.
+The computationally intensive **process** and **analyze** subprograms can (and should typically) be run in parallel by specifying the number of available cores using `-p <num>`.
 
-### Custom parameters
+### Running the Package
 You can find the full usage and parameters of `alleleome` by using the `--help` function:
 ```bash
 $ alleleome -h
-usage: alleleome [-h] {prepare,fasta,process,process_gene,analyze} ...
+usage: alleleome [-h] {prepare,fasta,process,analyze,preplot} ...
 
-Alleleome - Explore and analyze natural sequence variations within the Open Reading Frames (ORFs) of alleles of core genes in a species pan-genome.
+Alleleome - Explore and analyze natural sequence variations within the Open Reading Frames (ORFs) of alleles of genes in a species pan-genome.
 
 positional arguments:
-  {prepare,fasta,process,process_gene,analyze}
+  {prepare,fasta,process,analyze,preplot}
 
 options:
   -h, --help            show this help message and exit
 ```
-The different modes should be run in the order: prepare > fasta > process (or process_gene for every gene separately) > analyze. Info on the inputs and outputs for every mode can be found by invoking that mode with the --help argument. E.g.:
+The different modes should be run in the order: prepare > fasta > process > analyze > preplot. Info on the inputs and outputs for every mode can be found by invoking that mode with the --help argument. E.g.:
 ```bash
 $ alleleome prepare -h
-usage: alleleome prepare [-h] --gp_binary GP_BINARY --gp_locustag GP_LOCUSTAG --summary SUMMARY --summary_v2 SUMMARY_V2 --gbk_folder GBK_FOLDER --all_locustag ALL_LOCUSTAG [--pan | --no-pan] --all_genes ALL_GENES --sel_locustag SEL_LOCUSTAG
-                         --sel_genes SEL_GENES
+usage: alleleome prepare [-h] --gp_binary GP_BINARY --gp_locustag GP_LOCUSTAG --summary SUMMARY --summary_v2 SUMMARY_V2 --gbk_folder GBK_FOLDER --all_locustag ALL_LOCUSTAG --all_genes ALL_GENES --sel_locustag SEL_LOCUSTAG --sel_genes SEL_GENES
 
 options:
   -h, --help            show this help message and exit
@@ -164,13 +136,6 @@ Key features include:
 ## Built With
 - Python and Biopython.
 - Integrated with "BGCflow" workflow using SnakeMake.
-
-## Versioning
-- [Versioning details here]
-
-## Authors and Acknowledgment
-- [List of authors and contributors]
-- Special thanks to [acknowledgments].
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
