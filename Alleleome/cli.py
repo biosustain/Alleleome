@@ -8,8 +8,7 @@ from . import (
     write_fasta,
     consensus_sequence,
     sequence_alignment,
-    amino_acid_variants,
-    codon_mutations,
+    mutations_parallel,
 )
 from .preplot import (
     dominant_aa,
@@ -40,7 +39,7 @@ def main_prepare(args):
     )
     logging.info("Processing GBK files")
     all_locustag_df = load_and_qcqa.parse_genbank_files(
-        df_gene_presence_locustag, args.gbk_folder
+        df_gene_presence_locustag, args.gbk_folder,
     )
     logging.info("Preparing QCQA")
     pangene_summary, all_locustag_df, all_genes_df = load_and_qcqa.prepare_qcqa(
@@ -76,7 +75,7 @@ def main_fasta(args):
     )
     all_locustag_df = load_and_qcqa.load(args.all_locustag)
     write_fasta.process_selected_genes(
-        all_locustag_df, locustag_list, gene_list, args.out_dir
+        all_locustag_df, locustag_list, gene_list, args.out_dir, args.gbk_folder
     )
     load_and_qcqa.write_gene_list(gene_list, args.gene_list)
 
@@ -96,13 +95,14 @@ def main_process_gene(args):
 
 def main_analyze(args):
     gene_list = load_and_qcqa.load_gene_list(args.gene_list)
-    amino_acid_variants.generate_amino_acid_vars(gene_list, args.out_dir, args.aa_vars)
-    codon_mutations.codon_mut(gene_list, args.out_dir, args.codon_muts)
+    mutations_parallel.generate_amino_acid_vars(gene_list, args.out_dir, args.aa_vars, p=args.p)
+    mutations_parallel.codon_mut(gene_list, args.out_dir, args.codon_muts, p=args.p)
 
 
 def main_preplot(args):
     gene_list = load_and_qcqa.load_gene_list(args.gene_list)
-    dominant_aa.find_dominant_aa(gene_list, args.out_dir, args.dominant_aa)
+    dn_ds.calculate_dn_ds(args.codon_muts, args.dn_ds, args.dn_ds_json)
+    dominant_aa.find_dominant_aa(gene_list, args.out_dir, args.dominant_aa, p=args.p)
     var_aa.find_variable_aa(args.aa_vars, args.variable_aa)
     var_aa.find_dominant_var_all(
         args.variable_aa,
@@ -113,7 +113,6 @@ def main_preplot(args):
         args.dom_var_out_dir,
         gene_list,
     )
-    dn_ds.calculate_dn_ds(args.codon_muts, args.dn_ds, args.dn_ds_json)
     var_aa.dom_var_histogram(args.filt_norm, args.hist)
     msa_freq.calculate_msa_freq(gene_list, args.out_dir, args.aa_freq_dir)
 
@@ -169,20 +168,19 @@ def main():
         required=True,
         help=("Path to the updated summary."),
     )
-    parsers["prepare"].add_argument(
-        "--gbk_folder",
-        type=str,
-        required=True,
-        help="Folder containing GenBank files.",
-    )
     for x in ["prepare", "fasta"]:
+        parsers[x].add_argument(
+            "--gbk_folder",
+            type=str,
+            required=True,
+            help="Folder containing GenBank files.",
+        )
         parsers[x].add_argument(
             "--all_locustag",
             type=str,
             required=True,
             help="Path to all_locustags csv file.",
         )
-    for x in ["prepare", "fasta"]:
         parsers[x].add_argument(
             "--all_genes", type=str, required=True, help="Path to all_genes csv file."
         )
@@ -234,13 +232,14 @@ def main():
             required=True,
             help="Path to gene_list.txt file.",
         )
-    parsers["process"].add_argument(
-        "-p",
-        type=int,
-        required=False,
-        default=1,
-        help="Number of parallel processes to spawn.",
-    )
+    for x in ["process", "analyze", "preplot"]:
+        parsers[x].add_argument(
+            "-p",
+            type=int,
+            required=False,
+            default=1,
+            help="Number of parallel processes to spawn.",
+        )
     parsers["preplot"].add_argument(
         "--dominant_aa",
         type=str,

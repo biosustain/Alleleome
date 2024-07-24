@@ -67,8 +67,14 @@ def parse_genbank_files(df_gene_presence_locustag, gbk_folder):
     Returns:
     DataFrame: DataFrame with parsed GenBank data
     """
+
     all_locustag_list = []
-    for genome_id in list(df_gene_presence_locustag.columns):
+    genome_ids = list(df_gene_presence_locustag.columns)
+    for i, genome_id in enumerate(genome_ids):
+        logging.info(f"Writing genome #{i+1}/{len(genome_ids)} to fasta.")
+        cur_df = df_gene_presence_locustag[genome_id]
+        cur_df = cur_df[~cur_df.isna()]
+        cur_df = pd.Series(cur_df.index.values, index=cur_df)
         genbank_file_path = Path(gbk_folder) / f"{genome_id}.gbk"
         for record in SeqIO.parse(genbank_file_path, "genbank"):
             for feature in record.features:
@@ -76,12 +82,14 @@ def parse_genbank_files(df_gene_presence_locustag, gbk_folder):
                 tag = feature.qualifiers.get("locus_tag")
                 if not tag:
                     continue
-                gene_id = df_gene_presence_locustag.index[df_gene_presence_locustag[genome_id] == tag[0]]
-                if len(gene_id) != 1:
+                try:
+                    gene_id = cur_df[tag[0]]
+                # if len(gene_id) != 1:
+                except:
                     continue
                 genome_data_list.append(tag[0])  # Locus tag
                 genome_data_list.append(genome_id)  # Genome ID
-                genome_data_list.append(gene_id[0])
+                genome_data_list.append(gene_id)
                 
                 if "product" in feature.qualifiers.keys():
                     genome_data_list.append(
@@ -93,16 +101,9 @@ def parse_genbank_files(df_gene_presence_locustag, gbk_folder):
                     int(feature.location.start)
                 )  # Start position
                 genome_data_list.append(int(feature.location.end))  # End position
-                genome_data_list.append(
-                    str(feature.extract(record.seq))
-                )  # Nucleotide Seq
-                if "translation" in feature.qualifiers.keys():
-                    genome_data_list.append(
-                        feature.qualifiers["translation"][0]
-                    )  # Amino Acid Seq
-                else:
-                    genome_data_list.append("")
+                genome_data_list.append(len(feature))
                 all_locustag_list.append(genome_data_list)
+
     all_locustag_df = pd.DataFrame(
         all_locustag_list,
         columns=[
@@ -112,8 +113,7 @@ def parse_genbank_files(df_gene_presence_locustag, gbk_folder):
             "Prokka_Annotation",
             "Start_Position",
             "End_Position",
-            "Nucleotide_Seq",
-            "Amino_Acid_Seq",
+            "Nucleotide_Len",
         ],
     )
     # Use genome + locus tag as index, since there may be duplicate locus tags accross genomes.
@@ -150,8 +150,8 @@ def reassign_pangene_categories(df_pangene_summary, df_gene_presence_binary):
 
 def prepare_qcqa(all_locustag_df, df_pangene_summary, df_gene_presence_binary, df_gene_presence_locustag):
     logging.info(f"all_locustag_df shape: {all_locustag_df.shape}")
-    logging.info("Calculating: Nucleotide lengths")
-    all_locustag_df["Nucleotide_Len"] = all_locustag_df["Nucleotide_Seq"].str.len()
+    # logging.info("Calculating: Nucleotide lengths")
+    # all_locustag_df["Nucleotide_Len"] = all_locustag_df["Nucleotide_Seq"].str.len()
     logging.info("Calculating: Gene_ID counts")
     all_genes_df = all_locustag_df["Gene_ID"].value_counts()
     logging.info("Calculating: Gene_ID counts: Renaming")

@@ -7,7 +7,7 @@ import logging
 def find_variable_aa(aa_vars_path, variable_aa_path):
     logging.info("Starting: preplot: find_variable_aa")
 
-    df = pd.read_csv(aa_vars_path, na_filter=False)
+    df = pd.read_csv(aa_vars_path, na_filter=False, header=0, index_col=False)
 
     df.drop(index=df.loc[df.AA_mutation_type != "Substitution"].index, inplace=True)
     df.reset_index(inplace=True)
@@ -60,6 +60,8 @@ def find_dominant_var_all(
     )
 
     df_dom_var = pd.concat([df_var, df_dom]).sort_values("Gene")
+    df_dom_var.reset_index(inplace=True)
+    df_dom_var.drop(columns=["index"], inplace=True)
 
     df_dom_var.to_csv(dom_var_path)
 
@@ -81,7 +83,7 @@ def find_dominant_var_all(
     df_norm.to_csv(filt_norm_path)
 
     # for getting the single gene details
-    for gene, group in df.groupby('Gene'):
+    for gene, group in df_norm.groupby('Gene'):
         if not gene in gene_list:
             continue
         gene_path = dom_var_out_dir / gene

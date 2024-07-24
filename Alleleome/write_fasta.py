@@ -1,5 +1,6 @@
 import logging
 from pathlib import Path
+import shutil
 
 import pandas as pd
 
@@ -7,43 +8,58 @@ from Bio import SeqIO
 from Bio.Seq import Seq
 from Bio.SeqRecord import SeqRecord
 
-def process_gene(
-    gene_id, sel_locustag_df, fna_path, faa_path
-):
-    logging.info(f"   Processing gene: {gene_id}")
 
-    filtered_df = sel_locustag_df[sel_locustag_df["Gene_ID"] == gene_id]
-    nucleotide_records = [
-        SeqRecord(
-            Seq(row["Nucleotide_Seq"]),
-            id=row["Locus_Tag"],
-            description=f"{row.get('Prokka_Annotation', 'Unknown')} | {row['Genome_ID']}",
-        )
-        for idx, row in filtered_df.iterrows()
-    ]
-    amino_acid_records = [
-        SeqRecord(
-            Seq(row["Amino_Acid_Seq"]),
-            id=row["Locus_Tag"],
-            description=f"{row.get('Prokka_Annotation', 'Unknown')} | {row['Genome_ID']}",
-        )
-        for idx, row in filtered_df.iterrows()
-    ]
-    with open(fna_path, "w") as fasta_n_file:
-        SeqIO.write(nucleotide_records, fasta_n_file, "fasta")
-    with open(faa_path, "w") as fasta_aa_file:
-        SeqIO.write(amino_acid_records, fasta_aa_file, "fasta")
-    logging.info(f"   Finished gene: {gene_id}")
-
-def process_selected_genes(all_locustag_df, locustag_list, gene_list, out_dir):
+def process_selected_genes(all_locustag_df, locustag_list, gene_list, out_dir, gbk_folder):
     out_dir = Path(out_dir)
     sel_locustag_df = all_locustag_df.loc[locustag_list]
     
+    sel_gene_list = gene_list.to_list()
+
     for gene in gene_list:
         gene_dir = out_dir / "input" / gene
         gene_dir.mkdir(parents=True, exist_ok=True)
         fna_path = gene_dir / "pan_genes.fna"
         faa_path = gene_dir / "pan_genes.faa"
         if fna_path.is_file() and faa_path.is_file():
-            continue
-        process_gene(gene, sel_locustag_df, fna_path, faa_path)
+            sel_gene_list.remove(gene)
+        # process_gene(gene, sel_locustag_df, fna_path, faa_path, tmp_folder)
+    if not sel_gene_list:
+        return
+    genome_ids = sel_locustag_df["Genome_ID"].unique()
+    for i, genome_id in enumerate(genome_ids):
+        logging.info(f"Writing genome #{i+1}/{len(genome_ids)} to fasta.")
+        genbank_file_path = Path(gbk_folder) / f"{genome_id}.gbk"
+        for record in SeqIO.parse(genbank_file_path, "genbank"):
+            for feature in record.features:
+                tag = feature.qualifiers.get("locus_tag")
+                if not tag:
+                    continue
+                locustag = tag[0]
+                try:
+                    locustag_info = sel_locustag_df.loc[f"{genome_id}@{locustag}", :]
+                except:
+                    continue
+                gene_id = str(locustag_info["Gene_ID"])
+                if not gene_id in sel_gene_list:
+                    continue
+                
+                annotation = locustag_info["Prokka_Annotation"]
+                if annotation == "":
+                    annotation = "Unknown"
+
+                gene_dir = out_dir / "input" / gene_id
+                nuc_record = SeqRecord(
+                    feature.extract(record.seq),
+                    id=locustag, # locus tag
+                    description=f"{annotation} | {genome_id}",
+                )
+                with open(gene_dir / f"pan_genes.fna", "a") as f:
+                    SeqIO.write(nuc_record, f, "fasta")
+                
+                aa_record = SeqRecord(
+                    feature.qualifiers["translation"][0] if "translation" in feature.qualifiers.keys() else "",
+                    id=locustag, # locus tag
+                    description=f"{annotation} | {genome_id}",
+                )
+                with open(gene_dir / f"pan_genes.faa", "a") as f:
+                    SeqIO.write(aa_record, f, "fasta")

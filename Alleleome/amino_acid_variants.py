@@ -143,6 +143,13 @@ def _get_consecutive_pos_l(pos_l):
 mut_pos_l = [1, 4, 5, 7, 8, 9, 22]
 assert _get_consecutive_pos_l(mut_pos_l) == [[1], [4, 5], [7, 8, 9], [22]]
 
+def write_mut_data(file_data, mut_data):
+    df = pd.DataFrame([mut_data])
+    f = file_data[0]
+    first_line = file_data[1]
+    df.to_csv(f, header=first_line, index=False)
+    if first_line:
+        file_data[1] = False
 
 def generate_amino_acid_vars(
     gene_list, out_dir, aa_vars_path
@@ -151,118 +158,124 @@ def generate_amino_acid_vars(
         "Starting generate_amino_acid_vars in generate_amino_acid_variants"
     )
     out_dir = Path(out_dir)
-    all_mutations = []
+    # all_mutations = []
 
-    for gene in gene_list:
-        blast_output_dir = (
-            out_dir / "output" / gene
-        )
-        blast_output_file_path = blast_output_dir / (
-            "amino_acid_blast_out_" + gene + ".xml.gz"
-        )
+    with open(aa_vars_path, "w") as f:
+        file_data = [f, True]
+        for i, gene in enumerate(gene_list):
+            logging.info(f"Amino acid variants for gene #{i}/{len(gene_list)}")
+            blast_output_dir = (
+                out_dir / "output" / gene
+            )
+            blast_output_file_path = blast_output_dir / (
+                "amino_acid_blast_out_" + gene + ".xml.gz"
+            )
 
-        for record in NCBIXML.parse(gzip.open(blast_output_file_path, "rt")):
-            if len(record.alignments) > 0:
-                # Description of available members: https://biopython.org/docs/1.75/api/Bio.Blast.Record.html
-                subject_match_start_pos = record.alignments[0].hsps[0].sbjct_start
-                blast_subject_str = record.alignments[0].hsps[0].sbjct
-                blast_match_str = record.alignments[0].hsps[0].match
-                blast_query_str = record.alignments[0].hsps[0].query
-                length_align = record.alignments[0].hsps[0].align_length
-                align_score = record.alignments[0].hsps[0].score
-                e_value = record.alignments[0].hsps[0].expect
-                num_indentities = record.alignments[0].hsps[0].identities
-                query_info = record.query
-                query_info = query_info.split("|", 1)
-                query_description = query_info[0]
-                query_description = query_description.split(" ", 1)
-                query_id = query_description[0]
-                query_desc = query_description[1]
-                GCF_id = query_info[1]
-                # Won't find differences in the beginning of genes since doesn't compare query vs subject start and end match positions.
-                ins_d = _get_ins_d(
-                    blast_subject_str, blast_query_str, subject_match_start_pos
-                )
-                for cnsc_pos_l in _get_consecutive_pos_l(ins_d.keys()):
-                    seq_chng_str = "".join([ins_d[p] for p in cnsc_pos_l])
-                    mut_data = {
-                        "Gene": gene,
-                        "Mutation_source": "Pangenome variant",
-                        "AA_start_pos": min(cnsc_pos_l),
-                        "AA_end_pos": max(cnsc_pos_l),
-                        "Mutation_size": len(cnsc_pos_l),
-                        "AA_mutation_type": "Insertion",
-                        "AA_cons_seq": "",
-                        "AA_seq_change": seq_chng_str,
-                        "Length_alignment": length_align,
-                        "Score": align_score,
-                        "E_value": e_value,
-                        "Identity": num_indentities,
-                        "Query_locus_tag": query_id,
-                        "Query_description": query_desc,
-                        "GCF_id": GCF_id,
-                        "Sequence_type": "Variant",
-                    }  # Can't use columns due to diff parsing of 'AA range' input
-                    all_mutations.append(mut_data)
-                # Won't find differences in the beginning of genes since doesn't compare query vs subject start and end match positions.
-                del_d = _get_del_d(
-                    blast_subject_str, blast_query_str, subject_match_start_pos
-                )
-                for cnsc_pos_l in _get_consecutive_pos_l(del_d.keys()):
-                    seq_chng_str = "".join([del_d[p] for p in cnsc_pos_l])
-                    mut_data = {
-                        "Gene": gene,
-                        "Mutation_source": "Pangenome variant",
-                        "AA_start_pos": min(cnsc_pos_l),
-                        "AA_end_pos": max(cnsc_pos_l),
-                        "Mutation_size": len(cnsc_pos_l),
-                        "AA_mutation_type": "Deletion",
-                        "AA_cons_seq": seq_chng_str,
-                        "AA_seq_change": "",
-                        "Length_alignment": length_align,
-                        "Score": align_score,
-                        "E_value": e_value,
-                        "Identity": num_indentities,
-                        "Query_locus_tag": query_id,
-                        "Query_description": query_desc,
-                        "GCF_id": GCF_id,
-                        "Sequence_type": "Variant",
-                    }  # Can't use columns due to diff parsing of 'AA range' input
-                    all_mutations.append(mut_data)
+            for record in NCBIXML.parse(gzip.open(blast_output_file_path, "rt")):
+                if len(record.alignments) > 0:
+                    # Description of available members: https://biopython.org/docs/1.75/api/Bio.Blast.Record.html
+                    subject_match_start_pos = record.alignments[0].hsps[0].sbjct_start
+                    blast_subject_str = record.alignments[0].hsps[0].sbjct
+                    blast_match_str = record.alignments[0].hsps[0].match
+                    blast_query_str = record.alignments[0].hsps[0].query
+                    length_align = record.alignments[0].hsps[0].align_length
+                    align_score = record.alignments[0].hsps[0].score
+                    e_value = record.alignments[0].hsps[0].expect
+                    num_indentities = record.alignments[0].hsps[0].identities
+                    query_info = record.query
+                    query_info = query_info.split("|", 1)
+                    query_description = query_info[0]
+                    query_description = query_description.split(" ", 1)
+                    query_id = str(query_description[0])
+                    query_desc = str(query_description[1])
+                    gcf_id = str(query_info[1])
+                    # Won't find differences in the beginning of genes since doesn't compare query vs subject start and end match positions.
+                    ins_d = _get_ins_d(
+                        blast_subject_str, blast_query_str, subject_match_start_pos
+                    )
+                    for cnsc_pos_l in _get_consecutive_pos_l(ins_d.keys()):
+                        seq_chng_str = "".join([ins_d[p] for p in cnsc_pos_l])
+                        mut_data = {
+                            "Gene": gene,
+                            "Mutation_source": "Pangenome variant",
+                            "AA_start_pos": min(cnsc_pos_l),
+                            "AA_end_pos": max(cnsc_pos_l),
+                            "Mutation_size": len(cnsc_pos_l),
+                            "AA_mutation_type": "Insertion",
+                            "AA_cons_seq": "",
+                            "AA_seq_change": seq_chng_str,
+                            "Length_alignment": length_align,
+                            "Score": align_score,
+                            "E_value": e_value,
+                            "Identity": num_indentities,
+                            "Query_locus_tag": query_id,
+                            "Query_description": query_desc,
+                            "GCF_id": gcf_id,
+                            "Sequence_type": "Variant",
+                        }  # Can't use columns due to diff parsing of 'AA range' input
+                        # all_mutations.append(mut_data)
+                        write_mut_data(file_data, mut_data)
+                    # Won't find differences in the beginning of genes since doesn't compare query vs subject start and end match positions.
+                    del_d = _get_del_d(
+                        blast_subject_str, blast_query_str, subject_match_start_pos
+                    )
+                    for cnsc_pos_l in _get_consecutive_pos_l(del_d.keys()):
+                        seq_chng_str = "".join([del_d[p] for p in cnsc_pos_l])
+                        mut_data = {
+                            "Gene": gene,
+                            "Mutation_source": "Pangenome variant",
+                            "AA_start_pos": min(cnsc_pos_l),
+                            "AA_end_pos": max(cnsc_pos_l),
+                            "Mutation_size": len(cnsc_pos_l),
+                            "AA_mutation_type": "Deletion",
+                            "AA_cons_seq": seq_chng_str,
+                            "AA_seq_change": "",
+                            "Length_alignment": length_align,
+                            "Score": align_score,
+                            "E_value": e_value,
+                            "Identity": num_indentities,
+                            "Query_locus_tag": query_id,
+                            "Query_description": query_desc,
+                            "GCF_id": gcf_id,
+                            "Sequence_type": "Variant",
+                        }  # Can't use columns due to diff parsing of 'AA range' input
+                        # all_mutations.append(mut_data)
+                        write_mut_data(file_data, mut_data)
 
-                sub_d = _get_sub_aa_d(
-                    blast_subject_str,
-                    blast_match_str,
-                    blast_query_str,
-                    list(ins_d.keys()) + list(del_d.keys()),
-                    subject_match_start_pos,
-                )
-                for cnsc_pos_l in _get_consecutive_pos_l(sub_d.keys()):
-                    seq_ref_str = "".join([sub_d[p]["s"] for p in cnsc_pos_l])
-                    seq_chng_str = "".join([sub_d[p]["q"] for p in cnsc_pos_l])
-                    mut_data = {
-                        "Gene": gene,
-                        "Mutation_source": "Pangenome variant",
-                        "AA_start_pos": min(cnsc_pos_l),
-                        "AA_end_pos": max(cnsc_pos_l),
-                        "Mutation_size": len(cnsc_pos_l),
-                        "AA_mutation_type": "Substitution",
-                        "AA_cons_seq": seq_ref_str,
-                        "AA_seq_change": seq_chng_str,
-                        "Length_alignment": length_align,
-                        "Score": align_score,
-                        "E_value": e_value,
-                        "Identity": num_indentities,
-                        "Query_locus_tag": query_id,
-                        "Query_description": query_desc,
-                        "GCF_id": GCF_id,
-                        "Sequence_type": "Variant",
-                    }  # Can't use columns due to diff parsing of 'AA range' input
-                    all_mutations.append(mut_data)
+                    sub_d = _get_sub_aa_d(
+                        blast_subject_str,
+                        blast_match_str,
+                        blast_query_str,
+                        list(ins_d.keys()) + list(del_d.keys()),
+                        subject_match_start_pos,
+                    )
+                    for cnsc_pos_l in _get_consecutive_pos_l(sub_d.keys()):
+                        seq_ref_str = "".join([sub_d[p]["s"] for p in cnsc_pos_l])
+                        seq_chng_str = "".join([sub_d[p]["q"] for p in cnsc_pos_l])
+                        mut_data = {
+                            "Gene": gene,
+                            "Mutation_source": "Pangenome variant",
+                            "AA_start_pos": min(cnsc_pos_l),
+                            "AA_end_pos": max(cnsc_pos_l),
+                            "Mutation_size": len(cnsc_pos_l),
+                            "AA_mutation_type": "Substitution",
+                            "AA_cons_seq": seq_ref_str,
+                            "AA_seq_change": seq_chng_str,
+                            "Length_alignment": length_align,
+                            "Score": align_score,
+                            "E_value": e_value,
+                            "Identity": num_indentities,
+                            "Query_locus_tag": query_id,
+                            "Query_description": query_desc,
+                            "GCF_id": gcf_id,
+                            "Sequence_type": "Variant",
+                        }  # Can't use columns due to diff parsing of 'AA range' input
+                        # all_mutations.append(mut_data)
+                        write_mut_data(file_data, mut_data)
 
-    gene_var_df = pd.DataFrame(all_mutations)
+    # gene_var_df = pd.DataFrame(all_mutations)
 
-    gene_var_df.to_csv(aa_vars_path) # out_dir / "pan_amino_acid_vars_df.csv")
+    # gene_var_df.to_csv(aa_vars_path) # out_dir / "pan_amino_acid_vars_df.csv")
     logging.info(
         "Completed generate_amino_acid_vars in generate_amino_acid_variants"
     )
