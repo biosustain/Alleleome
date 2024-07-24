@@ -23,8 +23,6 @@ This package is based on the Alleleome package created by Archana S. Harke ([anp
 - [Usage](#usage)
 - [Features](#features)
 - [Built With](#built-with)
-- [Versioning](#versioning)
-- [Authors and Acknowledgment](#authors-and-acknowledgment)
 - [License](#license)
 
 ## Getting Started
