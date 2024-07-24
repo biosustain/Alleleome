@@ -77,11 +77,13 @@ Before installing Alleleome, it's recommended to create a virtual environment. T
 
 ### Modes
 The package consists of 5 subprograms that should be run sequentially:
+
 1. **prepare**: Collect information on the genomes and genes/loci, and perform QC/QA.
 2. **fasta**: Use the collected information to create amino acid and nucleotide fasta files for alignment. At this steps it should be specified whether teh Core-alleleome should be anlyzed (default) or the Panalleleome (`--pan`).
 3. **process**: Run alignments using blast and mafft.
 4. **analyze**: Analyze and process the sequence alignments.
 5. **preplot**: Generate files required for plotting the results on PanKB.
+
 The computationally intensive **process** and **analyze** subprograms can (and should typically) be run in parallel by specifying the number of available cores using `-p <num>`.
 
 ### Running the Package
