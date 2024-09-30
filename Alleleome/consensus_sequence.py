@@ -46,13 +46,14 @@ def build_single_gene_consensus(gene_id, out_dir):
     for cons_type, ext in {"amino_acid": "faa", "nucleotide": "fna"}.items():
         generate_consensus(
             gene_id,
+            cons_type,
             alignment_input_dir / f"pan_genes.{ext}",
             alignment_output_dir / f"mafft_{cons_type}_{gene_id}.fasta.gz",
             alignment_output_dir / f"{cons_type}_consensus_{gene_id}.{ext}.gz"
         )
 
 
-def generate_consensus(gene_id, input_path, mafft_output_path, consensus_output_path):
+def generate_consensus(gene_id, cons_type, input_path, mafft_output_path, consensus_output_path):
     if mafft_output_path.is_file() and consensus_output_path.is_file():
         logging.info(f"Outputs for {gene_id} already present, skipping.")
         return
@@ -60,7 +61,11 @@ def generate_consensus(gene_id, input_path, mafft_output_path, consensus_output_
         logging.info(f"The input file is empty for {gene_id}")
         return
 
-    mafft_cline = MafftCommandline(input=f"\"{input_path}\"")
+    mafft_cline = MafftCommandline(
+            input=f"\"{input_path}\"",
+            amino=(cons_type == "amino_acid"),
+            nuc=(cons_type == "nucleotide"),
+        )
     stdout, stderr = mafft_cline()
 
     with gzip.open(mafft_output_path, "wt") as handle:
