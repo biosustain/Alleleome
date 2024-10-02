@@ -74,8 +74,11 @@ def main_fasta(args):
         load_all_gene_data(args)
     )
     all_locustag_df = load_and_qcqa.load(args.all_locustag)
-    write_fasta.process_selected_genes(
-        all_locustag_df, locustag_list, gene_list, args.out_dir, args.gbk_folder
+    # write_fasta.process_selected_genes(
+    #     all_locustag_df, locustag_list, gene_list, args.out_dir, args.gbk_folder
+    # )
+    write_fasta.process_all_genes(
+        all_locustag_df, all_genes_df, locustag_list, gene_list, args.out_dir, args.gbk_folder
     )
     load_and_qcqa.write_gene_list(gene_list, args.gene_list)
 
