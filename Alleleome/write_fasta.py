@@ -80,6 +80,9 @@ def process_all_genes(all_locustag_df, all_genes_df, locustag_list, gene_list, o
         other_faa_path = gene_dir / "others.fna"
         if fna_path.is_file() and faa_path.is_file() and other_fna_path.is_file() and other_faa_path.is_file():
             all_gene_list.remove(gene)
+        else:
+            for p in [fna_path, faa_path, other_fna_path, other_faa_path]:
+                p.unlink(missing_ok=True)
         # process_gene(gene, sel_locustag_df, fna_path, faa_path, tmp_folder)
     # if not sel_gene_list:
     #     return
