@@ -102,8 +102,8 @@ def process_all_genes(all_locustag_df, all_genes_df, locustag_list, gene_list, o
                 except:
                     continue
                 gene_id = str(locustag_info["Gene_ID"])
-                if not gene_id in sel_gene_list:
-                    continue
+                # if not gene_id in sel_gene_list:
+                #     continue
                 
                 annotation = locustag_info["Prokka_Annotation"]
                 if annotation == "":
