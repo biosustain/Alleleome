@@ -90,7 +90,7 @@ def calculate_dn_ds(codon_muts_path, dn_ds_path, dn_ds_json_path):
             df_per_gene["dN/dS Group"] == x,
             ["Synonymous_count", "Non_synonymous_count"],
         ]
-        .to_numpy()
+        .to_numpy().astype(int)
         .tolist()
         for x in ["dNdS_greater_than_one", "dNdS_equal_to_one", "dNdS_less_than_one"]
     }
